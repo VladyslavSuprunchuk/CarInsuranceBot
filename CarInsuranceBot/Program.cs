@@ -43,8 +43,6 @@ namespace CarInsuranceBot
                 client.BaseAddress = new Uri(HttpClientKeywords.TelegramBaseUrl);
             });
 
-            //var loger = NLog.LogManager.GetCurrentClassLogger();
-
             var serviceProvider = serviceCollection.BuildServiceProvider();
             var botService = serviceProvider.GetService<IBotCommunicationService>();
 

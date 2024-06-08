@@ -8,6 +8,7 @@
         public const string PaymentDeclinedTeg = "/paymentDeclined";
         public const string PaymentConfirmTeg = "/paymentConfirm";
         public const string FinishTeg = "/finish";
+        public const string ChattingTeg = "/chating";
 
         public const string ConfirmDocumentsButton = "Confirm data from documents";
         public const string ReshareDocumentsButton = "Reshare data from documents";
