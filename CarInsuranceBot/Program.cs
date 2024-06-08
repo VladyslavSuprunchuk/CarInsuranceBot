@@ -4,7 +4,8 @@ using CarInsuranceBot.Services.Interfaces;
 using CarInsuranceBot.Services.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System.Diagnostics;
+using Microsoft.Extensions.Logging;
+using NLog.Extensions.Logging;
 
 namespace CarInsuranceBot
 {
@@ -24,6 +25,13 @@ namespace CarInsuranceBot
             serviceCollection.AddScoped<IFileService, FileService>();
             serviceCollection.AddScoped<IOpenaiService, OpenaiService>();
 
+            // configure Logging with NLog
+            serviceCollection.AddLogging(loggingBuilder =>
+            {
+                loggingBuilder.ClearProviders();
+                loggingBuilder.AddNLog(configuration);
+            });
+
             //options binding
             serviceCollection.AddOptions<MindeeOptions>().Bind(configuration.GetSection(MindeeOptions.Mindee));
             serviceCollection.AddOptions<TelegramBotOptions>().Bind(configuration.GetSection(TelegramBotOptions.TelegramBot));
@@ -34,6 +42,8 @@ namespace CarInsuranceBot
             {
                 client.BaseAddress = new Uri(HttpClientKeywords.TelegramBaseUrl);
             });
+
+            //var loger = NLog.LogManager.GetCurrentClassLogger();
 
             var serviceProvider = serviceCollection.BuildServiceProvider();
             var botService = serviceProvider.GetService<IBotCommunicationService>();

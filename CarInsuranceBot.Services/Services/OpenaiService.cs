@@ -19,7 +19,7 @@ namespace CarInsuranceBot.Services.Services
         {
             var response = await _aiClient.GetCompletionsAsync(OpenaiKeywords.ModelName, request);
             var message = response.Value.Choices.FirstOrDefault()?.Text ??
-                          throw new InvalidOperationException(Errors.ChoiceNotFound);
+                          throw new InvalidOperationException(Errors.ChoiceNotFoundError);
 
             return message;
         }

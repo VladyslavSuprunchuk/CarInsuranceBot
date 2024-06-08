@@ -1,6 +1,7 @@
 ﻿using CarInsuranceBot.Core.Const;
 using CarInsuranceBot.Core.Options;
 using CarInsuranceBot.Services.Interfaces;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
@@ -17,25 +18,26 @@ namespace CarInsuranceBot.Services.Services
         private readonly IFileService _fileService;
         private readonly IOpenaiService _openaiService;
         private readonly TelegramBotOptions _telegramBotOptions;
+        private readonly ILogger<BotCommunicationService> _loger;
 
         public BotCommunicationService(
             IParserService parserService,
             IFileService fileService,
             IOpenaiService openaiService,
-            IOptions<TelegramBotOptions> telegramBotOptions)
+            IOptions<TelegramBotOptions> telegramBotOptions,
+            ILogger<BotCommunicationService> loger)
         {
             _telegramBotOptions = telegramBotOptions.Value;
             _telegramBot = new TelegramBotClient(_telegramBotOptions.Token);
             _parserService = parserService;
             _fileService = fileService;
             _openaiService = openaiService;
+            _loger = loger;
         }
 
         public async Task StartAsync()
         {
             await _telegramBot.ReceiveAsync(OnMessageAsync, HandleErrorAsync);
-
-            Thread.Sleep(-1); // equals endless cycle
         }
 
         private async Task OnMessageAsync(
@@ -43,34 +45,67 @@ namespace CarInsuranceBot.Services.Services
             Update update,
             CancellationToken cancellationToken)
         {
-            if (update.Message is Message message)
+            try
             {
-                if (message.Type == MessageType.Text)
+                if (update.Message is Message message)
                 {
-                    var (feedback, replyMarkup) = await ProcessTextMessageAsync(message.Text!);
+                    await ProcessUpdateMessageAsync(message);
+                }
+                else
+                if (update.CallbackQuery is CallbackQuery callbackQuery)
+                {
+                    await ProcessCallbackQueryAsync(callbackQuery);
+                }
+            }  
+            catch (Exception ex) 
+            {
+                string userId = string.Empty;
 
-                    await _telegramBot.SendTextMessageAsync(message.Chat.Id, feedback, replyMarkup: replyMarkup);
+                if (update.Message?.Chat.Id != null)
+                {
+                    userId = update.Message.Chat.Id.ToString();
+                }
+                else if (update.CallbackQuery?.Message?.Chat.Id != null)
+                {
+                    userId = update.CallbackQuery.Message.Chat.Id.ToString();
                 }
 
-                if (message.Type == MessageType.Photo)
-                {
-                    var file = await _telegramBot.GetFileAsync(message.Photo[message.Photo.Count() - 1].FileId);
-                    var feedback = await AnalyzePhotoMessageAsync(message.Caption, file);
-
-                    await _telegramBot.SendTextMessageAsync(message.Chat.Id, feedback);
-                }
-            }
-
-            else 
-            if (update.CallbackQuery is CallbackQuery callbackQuery)
-            {
-                var (feedback, replyMarkup) = await ProcessTextMessageAsync(callbackQuery.Data!);
-
-                await _telegramBot.SendTextMessageAsync(callbackQuery!.Message!.Chat.Id, feedback, replyMarkup: replyMarkup);
+                _loger.LogError(ex, Errors.ProcessingErrorMessage, userId);
             }
         }
 
-        //generating a text message with related bottons
+        //processing message type
+        private async Task ProcessUpdateMessageAsync(Message message)
+        {
+            if (message.Type == MessageType.Text)
+            {
+                var (feedback, replyMarkup) = await ProcessTextMessageAsync(message.Text!);
+
+                await _telegramBot.SendTextMessageAsync(message.Chat.Id, feedback, replyMarkup: replyMarkup);
+                return;
+            }
+
+            if (message.Type == MessageType.Photo)
+            {
+                var file = await _telegramBot.GetFileAsync(message.Photo![message.Photo.Count() - 1].FileId);
+                var feedback = await AnalyzePhotoMessageAsync(message.Caption, file);
+
+                await _telegramBot.SendTextMessageAsync(message.Chat.Id, feedback);
+                return;
+            }
+
+            await _telegramBot.SendTextMessageAsync(message.Chat.Id, Messages.InvalidCommand);
+        }
+
+        //processing callback type
+        private async Task ProcessCallbackQueryAsync(CallbackQuery callbackQuery)
+        {
+            var (feedback, replyMarkup) = await ProcessTextMessageAsync(callbackQuery.Data!);
+
+            await _telegramBot.SendTextMessageAsync(callbackQuery.Message!.Chat.Id, feedback, replyMarkup: replyMarkup);
+        }
+
+        //generating a text message with related buttons
         private async Task<(string feedback, InlineKeyboardMarkup markup)> ProcessTextMessageAsync(string message)
         {
             var (feedback, tag) = await AnalyzeTextMessageAsync(message);
@@ -82,6 +117,7 @@ namespace CarInsuranceBot.Services.Services
         //genarating a text message
         private async Task<(string feedback, string tag)> AnalyzeTextMessageAsync(string message)
         {
+            //1 line switch
             var feedback = message switch
             {
                 BotKeywords.StartTeg => (Messages.Welcome, BotKeywords.StartTeg),
@@ -97,7 +133,7 @@ namespace CarInsuranceBot.Services.Services
             return feedback;
         }
 
-        //photo processing
+        //processing photo
         private async Task<string> AnalyzePhotoMessageAsync(string? caption, Telegram.Bot.Types.File file)
         {
             var feedback = string.Empty;
@@ -111,17 +147,16 @@ namespace CarInsuranceBot.Services.Services
 
             var downloadUrl = $"{HttpClientKeywords.TelegramBaseUrl}{_telegramBotOptions.Token}/{file.FilePath}";
 
+            //2 line switch so use more older version to make it more readable
             switch (caption.ToLower())
             {
                 case BotKeywords.PassportCaption:
                     feedback = await _parserService.ParsePassportAsync(downloadUrl);
                     break;
-
                 case BotKeywords.VehicleCardCaption:
                     var filePath = await _fileService.DownloadFileAsync(downloadUrl, file);
                     feedback = await _parserService.ParseVehicleCardAsync(filePath);
                     break;
-
                 default:
                     break;
             }
@@ -136,32 +171,37 @@ namespace CarInsuranceBot.Services.Services
             {
                 BotKeywords.StartTeg => new InlineKeyboardMarkup(new[]
                 {
-                    InlineKeyboardButton.WithCallbackData("Confirm data from documents", BotKeywords.ConfirmDocumentsTeg),
-                    InlineKeyboardButton.WithCallbackData("Reshare data from documents", BotKeywords.ReshareDocumentsTeg)
+                    InlineKeyboardButton.WithCallbackData(BotKeywords.ConfirmDocumentsButton, BotKeywords.ConfirmDocumentsTeg),
+                    InlineKeyboardButton.WithCallbackData(BotKeywords.ReshareDocumentsButton, BotKeywords.ReshareDocumentsTeg)
                 }),
                 BotKeywords.ConfirmDocumentsTeg => new InlineKeyboardMarkup(new[]
                 {
-                    InlineKeyboardButton.WithCallbackData("Confirm payment", BotKeywords.PaymentConfirmTeg),
-                    InlineKeyboardButton.WithCallbackData("Decline payment", BotKeywords.PaymentDeclinedTeg)
+                    InlineKeyboardButton.WithCallbackData(BotKeywords.PaymentConfirmButton, BotKeywords.PaymentConfirmTeg),
+                    InlineKeyboardButton.WithCallbackData(BotKeywords.PaymentDeclinedButton, BotKeywords.PaymentDeclinedTeg)
                 }),
                 BotKeywords.PaymentConfirmTeg => new InlineKeyboardMarkup(new[]
                 {
-                    InlineKeyboardButton.WithCallbackData("Generate more documents", BotKeywords.StartTeg),
-                    InlineKeyboardButton.WithCallbackData("Finish the process", BotKeywords.FinishTeg)
+                    InlineKeyboardButton.WithCallbackData(BotKeywords.RestartButton, BotKeywords.StartTeg),
+                    InlineKeyboardButton.WithCallbackData(BotKeywords.FinishButton, BotKeywords.FinishTeg)
                 }),
                 _ => new InlineKeyboardMarkup(Enumerable.Empty<InlineKeyboardButton[]>())
             }; ;
         }
 
-        private async Task HandleErrorAsync(
-            ITelegramBotClient botClient,
-            Exception exception,
-            CancellationToken cancellationToken)
+        private Task HandleErrorAsync(
+             ITelegramBotClient botClient,
+             Exception exception,
+             CancellationToken cancellationToken)
         {
-            if (exception is ApiRequestException apiRequestException)
+            var ErrorMessage = exception switch
             {
-                Console.WriteLine(apiRequestException.ToString());
-            }
+                ApiRequestException apiRequestException
+                    => $"Telegram API Error:[{apiRequestException.ErrorCode}]- {apiRequestException.Message}",
+                _ => exception.ToString()
+            };
+
+            Console.WriteLine(ErrorMessage);
+            return Task.CompletedTask;
         }
     }
 }
