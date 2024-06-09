@@ -127,7 +127,7 @@ namespace CarInsuranceBot.Services.Services
                 BotKeywords.PaymentConfirmTeg => (await _openaiService.CreateRequest($"{OpenaiKeywords.FillTemplateRequest} {OpenaiKeywords.PolicyInsuranceTemplate}"),
                                                   BotKeywords.PaymentConfirmTeg),
                 BotKeywords.FinishTeg => (Messages.Finish, BotKeywords.FinishTeg),
-                _ => ((await _openaiService.CreateRequest($"{OpenaiKeywords.LiveChattingRequest}: {message}"), BotKeywords.ChattingTeg)) //live chatting to related topics as additional feature
+                _ => ((await _openaiService.CreateRequest($"{string.Format(OpenaiKeywords.LiveChattingRequest, message)}"), BotKeywords.ChattingTeg)) //live chatting to related topics as additional feature
             };
 
             return feedback;

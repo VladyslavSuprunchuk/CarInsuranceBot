@@ -2,7 +2,9 @@
 {
     public class OpenaiKeywords
     {
-        public const string PolicyInsuranceTemplate = """ 
+        public const string PolicyInsuranceTemplate = """
+                                                     Policy title:
+
                                                      Policy number:
 
                                                      Name of insured:
@@ -25,8 +27,7 @@
                                                      """;
 
         public const string FillTemplateRequest = "Fill the following template with random data";
-        public const string LiveChattingRequest = "Please execute following request, if it is not related to the topic of car insurance, just answer that the request is not appropriate";
-
+        public const string LiveChattingRequest = "Please execute following request {0}, if it is related to the topic of Identity and Vehicle Records, or any relevant matters, proceed accordingly. If not, just respond that the request is not appropriate.";
 
         public const string ModelName = "gpt-3.5-turbo-instruct";
     }
