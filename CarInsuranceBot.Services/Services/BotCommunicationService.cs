@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
+using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
@@ -37,7 +38,12 @@ namespace CarInsuranceBot.Services.Services
 
         public async Task StartAsync()
         {
-            await _telegramBot.ReceiveAsync(OnMessageAsync, HandleErrorAsync);
+            var receiverOptions = new ReceiverOptions
+            {
+                AllowedUpdates = new[] { UpdateType.Message, UpdateType.CallbackQuery }
+            };
+
+            await _telegramBot.ReceiveAsync(OnMessageAsync, HandleErrorAsync, receiverOptions);
         }
 
         private async Task OnMessageAsync(
