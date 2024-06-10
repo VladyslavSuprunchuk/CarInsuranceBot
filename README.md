@@ -1,16 +1,19 @@
 
 # Telegram bot
 
-This app was created for creation car insurance online and providing informational assistance online
+This app was created for creating car insurance online and providing informational assistance online.
 
-Features: 
-documents upload and real-time processing
-issuance of insurance policy in a short time
-communication with chatGpt on related topics
+## Features
 
-Telegram bot:
-username - https://t.me/Vlad_CarInsuranceBot
-a short video demonstrating the bot in main directory
+- Documents upload and real-time processing
+- Issuance of insurance policy in a short time
+- Communication with ChatGPT on related topics
 
-Project:
-Configuration is stored in appsettings.json, replace info if necessary.
+## Telegram bot
+
+- Username: [Vlad_CarInsuranceBot](https://t.me/Vlad_CarInsuranceBot)
+- A short video demonstrating the bot in the main directory
+
+## Project
+
+- Configuration is stored in `appsettings.json`, replace info if necessary
