@@ -164,6 +164,7 @@ namespace CarInsuranceBot.Services.Services
                     feedback = await _parserService.ParseVehicleCardAsync(filePath);
                     break;
                 default:
+                    feedback = Messages.NoPhotoDescription;
                     break;
             }
 
