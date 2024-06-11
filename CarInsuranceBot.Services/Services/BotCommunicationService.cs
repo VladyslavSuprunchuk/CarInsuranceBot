@@ -66,17 +66,20 @@ namespace CarInsuranceBot.Services.Services
             catch (Exception ex) 
             {
                 string userId = string.Empty;
+                var body = string.Empty;
 
                 if (update.Message?.Chat.Id != null)
                 {
                     userId = update.Message.Chat.Id.ToString();
+                    body = update.Message.Text;
                 }
                 else if (update.CallbackQuery?.Message?.Chat.Id != null)
                 {
                     userId = update.CallbackQuery.Message.Chat.Id.ToString();
+                    body = update.CallbackQuery.Data;
                 }
 
-                _loger.LogError(ex, Errors.ProcessingErrorMessage, userId);
+                _loger.LogError(ex, Errors.ProcessingErrorMessage, userId, body);
             }
         }
 

@@ -13,6 +13,10 @@ namespace CarInsuranceBot.Services.Services
     {
         private readonly MindeeClient _mindeeClient;
 
+        private const string EnpointName = "vehiclecard";
+        private const string AccountName = "VladS";
+        private const string Version = "1";
+
         public ParserService(IOptions<MindeeOptions> mindeeOptions)
         {
             _mindeeClient = new MindeeClient(mindeeOptions.Value.ApiKey);//or use Adapter pattern to make it more testable
@@ -33,9 +37,9 @@ namespace CarInsuranceBot.Services.Services
             //this product does not support synchronous mode - VladS / vehiclecard does not support sync if ParseAsync method
 
             var endpoint = new CustomEndpoint(
-                endpointName: "vehiclecard",
-                accountName: "VladS",
-                version: "1"
+                endpointName: EnpointName,
+                accountName: AccountName,
+                version: Version
             );
 
             var response = await _mindeeClient.EnqueueAndParseAsync<GeneratedV1>(inputSource, endpoint);
