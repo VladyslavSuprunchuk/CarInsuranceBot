@@ -33,7 +33,7 @@ namespace CarInsuranceBot.Services.Services
         public async Task<string> ParseVehicleCardAsync(string filePath)
         {
             var inputSource = new LocalInputSource(filePath);
-            //should work with file localy bacause of custom enpoint and EnqueueAndParseAsync doesn't have parametr for UrlInputSource
+            //should work with file localy because of custom enpoint and EnqueueAndParseAsync doesn't have parametr for UrlInputSource
             //this product does not support synchronous mode - VladS / vehiclecard does not support sync if ParseAsync method
 
             var endpoint = new CustomEndpoint(
